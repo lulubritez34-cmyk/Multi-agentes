@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escenario multiagente · El Colorado, Formosa · IA al Colorado</title>
+<meta name="description" content="Matecito Curioso, Ares y Arthur Schopenhauer, tres humanos digitales con IA, conversando junto al puente de El Colorado, Formosa.">
+<style>
+  :root{
+    --verde:#1d4e3b; --verde-hondo:#12362a; --oro:#c9a227; --crema:#f4f0e4; --tinta:#1b2420; --celeste:#86c5e3;
+    --panel:#fbf9f2; --linea:#d9d2bd; --alerta:#a8332f; --ok:#2e7d4f;
+    --sans:"Segoe UI","Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--crema);color:var(--tinta);font-family:var(--sans);font-size:16px;line-height:1.45}
+  button,input,select,textarea{font:inherit;color:inherit}
+  button{cursor:pointer}
+  .oculto{position:absolute;left:-9999px}
+
+  header.top{background:var(--verde);color:#fff;padding:10px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;border-bottom:4px solid var(--oro)}
+  header.top h1{font-size:18px;margin:0;font-weight:700;letter-spacing:.01em}
+  header.top p{margin:0;font-size:12.5px;opacity:.85}
+  .marca{display:flex;flex-direction:column}
+  nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+  nav.tabs button{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:7px 14px;font-size:14px;font-weight:600}
+  nav.tabs button[aria-selected="true"]{background:var(--oro);border-color:var(--oro);color:#1b1b12}
+  nav.tabs button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+
+  main{max-width:1500px;margin:0 auto;padding:14px 18px 30px}
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+  @media (max-width:980px){ .cols{grid-template-columns:1fr} }
+  .oculta{display:none!important}
+
+  /* ---------- Escenario ---------- */
+  #zonaMarco{display:flex;justify-content:center;background:#0d1511;border-radius:14px;padding:10px}
+  #marco{position:relative;overflow:hidden;background:#000;border-radius:8px;width:100%;aspect-ratio:16/9;max-height:78vh}
+  #marco[data-ratio="9x16"]{aspect-ratio:9/16;width:auto;height:min(78vh,860px)}
+  #mundo{position:absolute;left:0;top:0;width:1600px;height:865px;transform-origin:0 0;will-change:transform}
+  #marco[data-corte="0"] #mundo{transition:transform 1.1s cubic-bezier(.45,.05,.2,1)}
+  #fondo{position:absolute;inset:0;width:1600px;height:865px;display:block;user-select:none}
+  .personaje{position:absolute;pointer-events:none}
+  .personaje iframe{width:100%;height:100%;border:0;background:transparent;color-scheme:normal}
+  #banda{position:absolute;left:0;top:0;width:1600px;height:865px;pointer-events:none;background-size:1600px 865px}
+  #luz{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 40%,rgba(255,225,160,.0) 55%,rgba(30,20,0,.28) 100%)}
+  .capa-detras{z-index:10}.capa-banda{z-index:20}.capa-frente{z-index:30}
+
+  #velo{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 90px rgba(0,0,0,.35);z-index:5}
+  #rotulo{position:absolute;left:14px;top:12px;z-index:6;background:rgba(18,54,42,.88);color:#fff;border-left:4px solid var(--oro);padding:5px 12px;border-radius:4px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s}
+  #rotulo.visible{opacity:1}
+  #sub{position:absolute;left:4%;right:4%;bottom:4%;z-index:6;background:rgba(10,16,13,.78);color:#fff;border-radius:10px;padding:8px 14px;font-size:clamp(13px,1.7vw,20px);line-height:1.35;opacity:0;transition:opacity .25s;text-align:center}
+  #sub.visible{opacity:1}
+  #sub b{color:var(--oro);margin-right:6px}
+  #marco[data-ratio="9x16"] #sub{font-size:clamp(14px,3.2vw,22px);bottom:7%}
+  #tarjeta{position:absolute;inset:0;z-index:8;background:radial-gradient(ellipse at 50% 40%,#25644c,#0d2a20);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:6%;opacity:0;pointer-events:none;transition:opacity .7s}
+  #tarjeta.visible{opacity:1}
+  #tarjeta small{letter-spacing:.2em;text-transform:uppercase;color:var(--oro);font-size:clamp(10px,1.4vw,15px)}
+  #tarjeta h2{margin:0;font-size:clamp(20px,4.2vw,46px);line-height:1.15}
+  #tarjeta p{margin:0;font-size:clamp(11px,1.5vw,16px);opacity:.85;max-width:34em}
+  #aviso-ia{position:absolute;right:10px;top:12px;z-index:6;background:rgba(0,0,0,.5);color:#fff;font-size:11px;border-radius:999px;padding:3px 10px}
+
+  .barra{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 0}
+  .chip{border:1px solid var(--linea);background:#fff;border-radius:999px;padding:6px 12px;font-size:14px}
+  .chip[aria-pressed="true"]{background:var(--verde);color:#fff;border-color:var(--verde)}
+  .btn{border:0;background:var(--verde);color:#fff;border-radius:10px;padding:10px 16px;font-weight:700}
+  .btn:hover{background:var(--verde-hondo)}
+  .btn.oro{background:var(--oro);color:#1b1b12}
+  .btn.claro{background:#fff;color:var(--verde);border:1px solid var(--verde)}
+  .btn.rojo{background:var(--alerta)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn:focus-visible,.chip:focus-visible{outline:3px solid var(--oro);outline-offset:2px}
+
+  /* ---------- Paneles ---------- */
+  .panel{background:var(--panel);border:1px solid var(--linea);border-radius:14px;padding:14px 16px}
+  .panel h2{margin:0 0 6px;font-size:17px;color:var(--verde)}
+  .panel h3{margin:14px 0 6px;font-size:14px;color:var(--verde);text-transform:uppercase;letter-spacing:.05em}
+  .panel p{margin:6px 0}
+  .nota{font-size:13px;color:#4d5a53}
+  table{border-collapse:collapse;width:100%;font-size:14px}
+  th{background:var(--verde);color:#fff;text-align:left;padding:6px 8px}
+  td{padding:6px 8px;border-bottom:1px solid var(--linea)}
+  .estado-fila{display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--linea);font-size:14px}
+  .punto{width:11px;height:11px;border-radius:50%;background:#9aa39d}
+  .punto[data-e="conectando"]{background:var(--oro);animation:latido 1s infinite}
+  .punto[data-e="escucha"]{background:var(--celeste)}
+  .punto[data-e="habla"]{background:#e8a33d;box-shadow:0 0 10px #e8a33d}
+  .punto[data-e="error"]{background:var(--alerta)}
+  .punto[data-e="demo"]{background:#8a7bd8}
+  @keyframes latido{50%{opacity:.35}}
+  textarea,input[type=text],select{width:100%;border:1px solid var(--linea);border-radius:10px;padding:9px 11px;background:#fff}
+  textarea{min-height:120px;resize:vertical}
+  #guionTxt{min-height:300px;font-family:ui-monospace,Consolas,monospace;font-size:13.5px}
+  .fila{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+  .aviso{background:#fff4d6;border:1px solid #e3c768;border-radius:10px;padding:9px 12px;font-size:14px;margin:8px 0}
+  .aviso.mal{background:#fde7e6;border-color:#e3a19e}
+  .aviso.bien{background:#e6f4ea;border-color:#9ccaa9}
+  .tabpanel{display:block}
+  .gridg{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:980px){ .gridg{grid-template-columns:1fr} }
+  canvas#mini{width:100%;border-radius:10px;border:1px solid var(--linea);background:#000}
+  details.etica{margin-top:20px;background:#f8e9e8;border-left:5px solid var(--alerta);border-radius:8px;padding:10px 16px}
+  details.etica summary{font-weight:700;color:var(--alerta);cursor:pointer}
+  details.etica li{margin:5px 0}
+  footer{max-width:1500px;margin:0 auto;padding:0 18px 30px;text-align:center;color:#4d5a53;font-size:13px}
+  #calib{position:fixed;right:10px;bottom:10px;z-index:99;background:#fff;border:2px solid var(--oro);border-radius:10px;padding:10px;font-size:12px;max-width:310px;max-height:80vh;overflow:auto}
+  #calib label{display:grid;grid-template-columns:84px 1fr 52px;gap:4px;align-items:center;margin:2px 0}
+  #calib input[type=range]{width:100%}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="marca">
+    <h1>IA al Colorado · Escenario multiagente</h1>
+    <p>Auxiliar en IA 2026 · ISFD y T «República Federal de Alemania» · El Colorado, Formosa · Prácticas Profesionalizantes</p>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Secciones del escenario">
+    <button role="tab" id="t-vivo" aria-selected="true" data-tab="vivo">En vivo</button>
+    <button role="tab" id="t-guion" aria-selected="false" data-tab="guion">Idea → Guion</button>
+    <button role="tab" id="t-capitulo" aria-selected="false" data-tab="capitulo">Capítulo 16:9</button>
+    <button role="tab" id="t-short" aria-selected="false" data-tab="short">Short 9:16</button>
+    <button role="tab" id="t-youtube" aria-selected="false" data-tab="youtube">YouTube</button>
+  </nav>
+</header>
+
+<main>
+  <div class="cols" id="cols">
+    <!-- ================= Escenario (se comparte entre En vivo, Capítulo y Short) ================= -->
+    <section id="escenaSec" aria-label="Escenario">
+      <div id="zonaMarco">
+        <div id="marco" data-ratio="16x9" data-corte="0">
+          <div id="mundo">
+            <img id="fondo" src="img/fondo-el-colorado.jpg" alt="El puente de hormigón sobre el río en El Colorado, con el césped y la baranda blanca en primer plano" draggable="false">
+            <div id="luz"></div>
+          </div>
+          <div id="velo"></div>
+          <div id="rotulo"></div>
+          <div id="aviso-ia">Personajes recreados con IA</div>
+          <div id="sub" aria-live="polite"></div>
+          <div id="tarjeta"><small>IA al Colorado presenta</small><h2 id="tarjetaTitulo"></h2><p id="tarjetaTexto"></p></div>
+        </div>
+      </div>
+      <div class="barra" id="barraEscena">
+        <span class="nota">Cámara:</span>
+        <button class="chip" data-plano="general">General</button>
+        <button class="chip" data-plano="matecito">Matecito</button>
+        <button class="chip" data-plano="ares">Ares</button>
+        <button class="chip" data-plano="arthur">Arthur</button>
+        <button class="chip" id="chipAuto" aria-pressed="true">Cámara automática</button>
+        <button class="chip" id="btnPantalla">Pantalla completa</button>
+      </div>
+    </section>
+
+    <!-- ================= Panel lateral ================= -->
+    <aside id="lateral">
+
+      <!-- EN VIVO -->
+      <div class="panel tabpanel" id="p-vivo">
+        <h2>En vivo: la ronda de los tres</h2>
+        <p class="nota">Charlás por micrófono con los personajes y ellos se responden entre sí. Matecito «ceba» la charla.</p>
+        <div id="estados"></div>
+        <div class="fila">
+          <button class="btn" id="btnEmpezar">Empezar la charla</button>
+          <button class="btn rojo oculta" id="btnTerminar">Terminar</button>
+        </div>
+        <div id="avisoVivo"></div>
+        <div class="oculta" id="controlesVivo">
+          <h3>Tu turno</h3>
+          <div class="fila" id="receptores" role="group" aria-label="Hablarle a"></div>
+          <div class="fila">
+            <button class="btn oro" id="btnMic" aria-pressed="false">Hablar yo</button>
+            <button class="btn claro" id="btnSeguir">Seguir la ronda</button>
+          </div>
+          <form class="fila" id="formTexto" style="flex-wrap:nowrap">
+            <label class="oculto" for="textoVivo">Escribile al grupo</label>
+            <input type="text" id="textoVivo" placeholder="O escribí algo para la charla…" autocomplete="off">
+            <button class="btn" type="submit">Enviar</button>
+          </form>
+          <div class="fila nota">
+            <label><input type="checkbox" id="chkAuto" checked> Que se respondan solos hasta</label>
+            <input type="number" id="maxTurnos" value="6" min="1" max="20" style="width:64px;padding:4px 6px"> turnos
+          </div>
+        </div>
+        <h3>Practicar sin gastar créditos</h3>
+        <div class="fila">
+          <select id="demoGuion" aria-label="Guion de práctica"></select>
+          <button class="btn claro" id="btnDemo">Escuchar sin conexión</button>
+        </div>
+        <p class="nota">Usa las voces de tu dispositivo (no consume créditos de ElevenLabs).</p>
+        <p class="nota"><b>Costos:</b> en vivo, cada minuto consume créditos por cada agente conectado.</p>
+      </div>
+
+      <!-- IDEA → GUION -->
+      <div class="panel tabpanel oculta" id="p-guion">
+        <h2>Idea → Guion</h2>
+        <p class="nota">Escribí la idea de una historia y armá el guion con tus personajes en un lugar de Formosa.</p>
+        <label for="idea"><b>Tu idea</b></label>
+        <textarea id="idea" placeholder="Ej.: Un loro, un mate y un filósofo discuten cómo cuidar el humedal."></textarea>
+        <div class="fila">
+          <button class="btn" id="btnEsqueleto">Armar esqueleto</button>
+          <button class="btn claro" id="btnPedido">Copiar pedido para Claude</button>
+        </div>
+        <h3>Ejemplos listos</h3>
+        <div class="fila" id="ejemplos"></div>
+        <p class="nota">Formato: <code>NOMBRE: texto</code>. También <code>[título: …]</code>, <code>[plano: general|dos|matecito|ares|arthur]</code> y <code>[pausa: 1.5]</code>. Las líneas con # son comentarios.</p>
+      </div>
+
+      <!-- CAPÍTULO / SHORT -->
+      <div class="panel tabpanel oculta" id="p-cine">
+        <h2 id="cineTitulo">Capítulo 16:9</h2>
+        <p class="nota" id="cineAyuda">Versión cinematográfica horizontal, para YouTube. Reproduce el guion con cámaras automáticas, tarjeta de título y créditos.</p>
+        <div class="fila">
+          <button class="btn" id="btnPlay">▶ Reproducir el guion</button>
+          <button class="btn rojo" id="btnStop">■ Detener</button>
+        </div>
+        <div class="fila nota">
+          <label><input type="checkbox" id="chkTarjetas" checked> Con título y créditos</label>
+        </div>
+        <div id="avisoCine"></div>
+        <p class="nota"><b>Para grabar:</b> usá «Pantalla completa» y grabá con un segundo dispositivo apuntando a la pantalla, o con la grabadora de pantalla. La voz sale del dispositivo (sin conexión) para que puedas repetir las tomas gratis.</p>
+        <h3>Guion cargado</h3>
+        <div id="resumenGuion" class="nota"></div>
+      </div>
+
+      <!-- YOUTUBE -->
+      <div class="panel tabpanel oculta" id="p-youtube">
+        <h2>YouTube: miniatura, título y textos</h2>
+        <label for="ytTitulo"><b>Título</b></label>
+        <input type="text" id="ytTitulo">
+        <label for="ytDesc" style="display:block;margin-top:8px"><b>Descripción</b></label>
+        <textarea id="ytDesc" style="min-height:200px"></textarea>
+        <div class="fila">
+          <button class="btn" id="btnCopiarTitulo">Copiar título</button>
+          <button class="btn claro" id="btnCopiarDesc">Copiar descripción</button>
+        </div>
+        <h3>Miniatura 1280×720</h3>
+        <label for="miniTexto"><b>Texto de la miniatura</b></label>
+        <input type="text" id="miniTexto" maxlength="46">
+        <div class="fila">
+          <button class="btn oro" id="btnMini">Generar miniatura</button>
+          <button class="btn claro" id="btnBajarMini">Descargar PNG</button>
+        </div>
+        <canvas id="mini" width="1280" height="720"></canvas>
+        <div id="avisoYt"></div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Editor del guion (pestaña Idea → Guion) -->
+  <section id="seccionGuion" class="panel oculta" style="margin-top:16px">
+    <h2>Guion</h2>
+    <textarea id="guionTxt" spellcheck="false" aria-label="Guion"></textarea>
+    <div class="fila">
+      <button class="btn" id="btnUsarGuion">Usar este guion en el Capítulo</button>
+      <button class="btn claro" id="btnUsarShort">Usar en el Short 9:16</button>
+      <span class="nota" id="msgGuion"></span>
+    </div>
+  </section>
+
+  <details class="etica" open>
+    <summary>Uso ético y responsable</summary>
+    <ul>
+      <li><b>Transparencia:</b> Matecito, Ares y Arthur son recreaciones hechas con IA y lo dicen si se les pregunta. Se aclara también en pantalla y en los créditos.</li>
+      <li><b>Consentimiento:</b> no se clonan voces ni se usan caras de personas sin permiso por escrito. Nada de deepfakes. Arthur Schopenhauer es una recreación estilizada de un personaje histórico, no una persona viva.</li>
+      <li><b>Datos personales (Ley 25.326):</b> la voz viaja a los servidores de ElevenLabs; no compartas datos sensibles tuyos ni de otras personas.</li>
+      <li><b>Respeto cultural:</b> si sumás personas o saberes pilagá o qom, hacelo con fuentes, sin estereotipos y, si podés, consultando a la comunidad.</li>
+      <li><b>Costos:</b> cada minuto de charla en vivo consume créditos de ElevenLabs. Practicá con la demostración sin conexión.</li>
+      <li><b>Imagen de fondo:</b> usá solo fotos propias o con permiso de uso, y citá la autoría en los créditos.</li>
+    </ul>
+    <p class="nota">Alineado con la Recomendación sobre la Ética de la IA de la UNESCO (2021).</p>
+  </details>
+</main>
+<footer>«Primero le das voz, después compañía… y al final, ¡lo sacás del papel!» · DIA — Didáctica con IA · Aprendé jugando</footer>
+
+<script>
+/* =====================================================================================
+   ESCENARIO MULTIAGENTE · EL COLORADO, FORMOSA
+   Tres humanos digitales (cada uno con su página 3D y su agente de ElevenLabs) sobre una foto del puente.
+   Esta página es el «director»: ubica a los personajes, mueve la cámara y reparte los turnos.
+   ===================================================================================== */
+const URL_PARAMS = new URLSearchParams(location.search);
+
+/* ---- Agentes de ElevenLabs. Matecito todavía no tiene: pegá su ID acá o usá ?matecito=agent_... ---- */
+const AGENTES = {
+  matecito: '',
+  ares:     'agent_2101m4f68aj1fh8ankzf7cwrh370',
+  arthur:   'agent_8701m4s376jmfq4tybga1q3e9ana'
+};
+const agenteDe = (id) => URL_PARAMS.get(id) || AGENTES[id] || '';
+
+/* ---- Mundo: 1600 × 865 (misma proporción que la foto). Posiciones de los personajes (editables con ?calibrar=1) ---- */
+const MUNDO = { w:1600, h:865 };
+const BANDA = { izq:672, der:716 };   // altura del borde superior de la baranda en la foto (izquierda y derecha)
+const ORDEN = ['matecito', 'ares', 'arthur'];
+const P = {
+  matecito: { nombre:'Matecito Curioso', corto:'Matecito', archivo:'personajes/matecito.html', capa:'frente',  cara:.37, pos:{ cx:830,  base:740, w:320, h:380 }, voz:{ rate:1.03, pitch:1.3  }, alias:['matecito','mate'] },
+  ares:     { nombre:'Ares, el loro hablador', corto:'Ares', archivo:'personajes/ares.html', capa:'frente',  cara:.62, pos:{ cx:1330, base:520, w:330, h:420 }, voz:{ rate:1.08, pitch:1.4  }, alias:['ares','loro'] },
+  arthur:   { nombre:'Arthur Schopenhauer', corto:'Arthur', archivo:'personajes/arthur.html', capa:'detras', cara:.52, pos:{ cx:430,  base:706, w:420, h:480 }, voz:{ rate:.93,  pitch:.68 }, alias:['arthur','schopenhauer','arturo'] }
+};
+try { const g = JSON.parse(localStorage.getItem('esc_pos') || 'null'); if (g) for (const id in g) if (P[id]) Object.assign(P[id].pos, g[id]); } catch {}
+
+const $ = (id) => document.getElementById(id);
+const marco = $('marco'), mundo = $('mundo');
+const esperaMs = (ms) => new Promise(r => setTimeout(r, ms));
+
+/* ================= Construcción del set ================= */
+const frames = {};
+function construirSet(){
+  // baranda en primer plano: recorte de la misma foto, para que Arthur quede «detrás» de la baranda
+  const banda = document.createElement('div'); banda.id = 'banda'; banda.className = 'capa-banda';
+  banda.style.backgroundImage = 'url(img/fondo-el-colorado.jpg)';
+  mundo.appendChild(banda); actualizarBanda();
+  for (const id of ORDEN){
+    const p = P[id], d = document.createElement('div');
+    d.className = 'personaje capa-' + p.capa; d.id = 'p-' + id; d.dataset.id = id;
+    const f = document.createElement('iframe');
+    const ag = agenteDe(id);
+    f.src = p.archivo + '?escena=1' + (ag ? '&agente=' + encodeURIComponent(ag) : '');
+    f.allow = 'microphone; autoplay'; f.title = p.nombre; f.setAttribute('scrolling', 'no');
+    d.appendChild(f); mundo.appendChild(d); frames[id] = f; ubicar(id);
+  }
+}
+function ubicar(id){
+  const p = P[id].pos, d = $('p-' + id);
+  d.style.left = (p.cx - p.w/2) + 'px'; d.style.top = (p.base - p.h) + 'px'; d.style.width = p.w + 'px'; d.style.height = p.h + 'px';
+}
+function actualizarBanda(){
+  const b = $('banda'); if (!b) return;
+  const y0 = BANDA.izq, y1 = BANDA.der;
+  b.style.clipPath = `polygon(0px ${y0}px, ${MUNDO.w}px ${y1}px, ${MUNDO.w}px ${MUNDO.h}px, 0px ${MUNDO.h}px)`;
+}
+const cara = (id) => ({ x:P[id].pos.cx, y:P[id].pos.base - P[id].cara*P[id].pos.h });
+
+/* ================= Cámara ================= */
+let cam = { cx:800, cy:430, w:1600 };
+let marcoW = 0, marcoH = 0;
+function planoDe(nombre){
+  if (nombre === 'general') return { cx:800, cy:430, w:1600 };
+  if (P[nombre]){ const c = cara(nombre); return { cx:c.x, cy:c.y + 30, w:600 }; }
+  if (nombre === 'dos'){ return null; }
+  return { cx:800, cy:430, w:1600 };
+}
+function planoDos(a, b){
+  const ca = cara(a), cb = cara(b);
+  return { cx:(ca.x + cb.x)/2, cy:(ca.y + cb.y)/2 + 40, w:Math.abs(ca.x - cb.x) + 640 };
+}
+function aplicarCamara(c, inmediato){
+  cam = c || cam;
+  marcoW = marco.clientWidth; marcoH = marco.clientHeight; if (!marcoW) return;
+  const s0 = Math.max(marcoW/MUNDO.w, marcoH/MUNDO.h);
+  const s = Math.max(marcoW/cam.w, s0);
+  let tx = marcoW/2 - cam.cx*s, ty = marcoH/2 - cam.cy*s;
+  tx = Math.min(0, Math.max(marcoW - MUNDO.w*s, tx)); ty = Math.min(0, Math.max(marcoH - MUNDO.h*s, ty));
+  if (inmediato){ mundo.style.transition = 'none'; }
+  mundo.style.transform = `translate(${tx}px,${ty}px) scale(${s})`;
+  if (inmediato){ void mundo.offsetWidth; mundo.style.transition = ''; }
+}
+new ResizeObserver(() => aplicarCamara(null, true)).observe(marco);
+let camAuto = true;
+function irA(nombre, otro){
+  let c;
+  if (nombre === 'dos' && otro) c = planoDos(nombre === 'dos' ? otro[0] : nombre, otro[1]);
+  else c = planoDe(nombre);
+  aplicarCamara(c, false);
+  document.querySelectorAll('[data-plano]').forEach(b => b.setAttribute('aria-pressed', b.dataset.plano === nombre ? 'true' : 'false'));
+}
+document.querySelectorAll('[data-plano]').forEach(b => b.addEventListener('click', () => { camAuto = false; $('chipAuto').setAttribute('aria-pressed', 'false'); irA(b.dataset.plano); }));
+$('chipAuto').addEventListener('click', (e) => { camAuto = !camAuto; e.currentTarget.setAttribute('aria-pressed', String(camAuto)); if (camAuto) irA('general'); });
+$('btnPantalla').addEventListener('click', () => { const z = $('zonaMarco'); (z.requestFullscreen || z.webkitRequestFullscreen || (() => {})).call(z); });
+
+/* ================= Subtítulos, rótulo y tarjetas ================= */
+let tSub = 0;
+function subtitular(id, texto){
+  const s = $('sub'), r = $('rotulo');
+  if (!texto){ s.classList.remove('visible'); r.classList.remove('visible'); return; }
+  const t = texto.length > 300 ? texto.slice(0, 297) + '…' : texto;
+  s.innerHTML = ''; const b = document.createElement('b'); b.textContent = P[id] ? P[id].corto + ':' : ''; s.append(b, document.createTextNode(t));
+  s.classList.add('visible');
+  if (P[id]){ r.textContent = P[id].nombre; r.classList.add('visible'); }
+}
+function tarjeta(titulo, texto){
+  const t = $('tarjeta'); if (!titulo){ t.classList.remove('visible'); return; }
+  $('tarjetaTitulo').textContent = titulo; $('tarjetaTexto').textContent = texto || ''; t.classList.add('visible');
+}
+
+/* ================= Comunicación con los personajes ================= */
+const enviar = (id, msg) => { try { frames[id].contentWindow.postMessage(msg, '*'); } catch (e) { console.warn('postMessage', e); } };
+const escuchas = [];
+function esperar(id, tipo, ms){
+  return new Promise(res => {
+    const o = { id, tipo, res }; escuchas.push(o);
+    setTimeout(() => { const i = escuchas.indexOf(o); if (i >= 0){ escuchas.splice(i, 1); res(null); } }, ms);
+  });
+}
+const listos = {}, estadoP = {};
+function pintarEstados(){
+  const cont = $('estados'); if (!cont.children.length){
+    for (const id of ORDEN){ const f = document.createElement('div'); f.className = 'estado-fila'; f.id = 'ef-' + id;
+      f.innerHTML = '<span class="punto" data-e="libre"></span><span><b></b> <small class="nota"></small></span><span class="nota"></span>'; cont.appendChild(f); }
+  }
+  for (const id of ORDEN){
+    const f = $('ef-' + id), e = estadoP[id] || (agenteDe(id) ? 'libre' : 'sin');
+    f.querySelector('.punto').dataset.e = e === 'sin' ? 'libre' : e;
+    f.querySelector('b').textContent = P[id].corto;
+    f.querySelector('small').textContent = agenteDe(id) ? '' : '(sin agente: solo demostración)';
+    f.lastElementChild.textContent = ({ libre:'sin conectar', conectando:'conectando…', escucha:'escucha', habla:'habla', error:'error', demo:'voz del dispositivo', sin:'sin agente' })[e] || e;
+  }
+}
+window.addEventListener('message', (ev) => {
+  const m = ev.data; if (!m || !m.esc) return;
+  const id = ORDEN.find(k => frames[k] && frames[k].contentWindow === ev.source); if (!id) return;
+  for (let i = escuchas.length - 1; i >= 0; i--){ const o = escuchas[i]; if ((o.id === id || o.id === '*') && o.tipo === m.tipo){ escuchas.splice(i, 1); o.res(m); } }
+  switch (m.tipo){
+    case 'esc_listo': listos[id] = true; break;
+    case 'esc_modo':
+      if (live.activo && live.conectados.includes(id)) { estadoP[id] = m.modo === 'speaking' ? 'habla' : 'escucha'; pintarEstados(); }
+      break;
+    case 'esc_habla': if (live.activo) alHablar(id, m.texto); break;
+    case 'esc_fin': if (live.activo) alTerminarTurno(id, m.texto); break;
+    case 'esc_usuario': if (live.activo) alOirUsuario(id, m.texto); break;
+    case 'esc_desconectado': if (live.activo && live.conectados.includes(id)){ estadoP[id] = 'libre'; pintarEstados(); } break;
+    case 'esc_error': console.warn('Personaje', id, m.mensaje); break;
+  }
+});
+
+/* ================= EN VIVO: el director ================= */
+let live = { activo:false, conectados:[], fase:'', turno:0, pausado:false, micOn:false, receptor:'matecito', hablando:null, ultimo:null, pendiente:null, vigia:0 };
+function avisoVivo(texto, tipo){ const a = $('avisoVivo'); a.innerHTML = ''; if (!texto) return; const d = document.createElement('div'); d.className = 'aviso ' + (tipo || ''); d.textContent = texto; a.appendChild(d); }
+
+async function empezar(){
+  if (live.activo) return;
+  detenerGuion();
+  const roster = ORDEN.filter(id => agenteDe(id));
+  if (!roster.length){ avisoVivo('Ningún personaje tiene agente cargado. Usá «Escuchar sin conexión» o cargá los IDs.', 'mal'); return; }
+  live = { activo:true, conectados:[], fase:'intro', turno:0, pausado:false, micOn:false, receptor:roster[0], hablando:null, ultimo:null, pendiente:null, vigia:0 };
+  $('btnEmpezar').classList.add('oculta'); $('btnTerminar').classList.remove('oculta');
+  avisoVivo('Conectando a los personajes de a uno, para que se presenten sin pisarse…');
+  const faltan = ORDEN.filter(id => !agenteDe(id));
+  for (const id of roster){
+    if (!live.activo) return;
+    estadoP[id] = 'conectando'; pintarEstados();
+    enviar(id, { tipo:'esc_conectar', agente:agenteDe(id) });
+    const c = await esperar(id, 'esc_conectado', 25000);
+    if (!live.activo) return;
+    if (!c || !c.ok){ estadoP[id] = 'error'; pintarEstados(); avisoVivo(`No pude conectar a ${P[id].corto}. Revisá que su agente sea público (pestaña Security en ElevenLabs) y que el micrófono esté permitido.`, 'mal'); continue; }
+    if (c.silenciable === false) live.sinMute = true;
+    enviar(id, { tipo:'esc_mic', mudo:true });
+    live.conectados.push(id); estadoP[id] = 'escucha'; pintarEstados();
+    await esperar(id, 'esc_fin', 80000);          // su saludo
+    if (camAuto) irA('general');
+  }
+  if (!live.activo) return;
+  if (!live.conectados.length){ terminar(); return; }
+  live.fase = 'ronda';
+  armarReceptores(); $('controlesVivo').classList.remove('oculta');
+  $('btnMic').disabled = !!live.sinMute; $('btnMic').title = live.sinMute ? 'Esta versión de la librería no permite silenciar el micrófono de cada personaje: usá el cuadro de texto.' : '';
+  avisoVivo((live.sinMute ? 'Ojo: no pude silenciar los micrófonos individuales; si hablás, varios pueden responder a la vez. Usá el texto. ' : '') + (faltan.length ? `Sin agente: ${faltan.map(i => P[i].corto).join(', ')}. ` : '') + 'Ya están todos. Arranca la ronda; podés hablarles o escribirles cuando quieras.', 'bien');
+  const primero = live.conectados[0];
+  const otros = live.conectados.filter(i => i !== primero).map(i => P[i].corto);
+  live.hablando = primero; vigilar();
+  enviar(primero, { tipo:'esc_texto', texto:`Arrancó la ronda. Ya se presentaron todos${otros.length ? ' (' + otros.join(' y ') + ')' : ''}. Proponé un tema para charlar sobre El Colorado, el Bañado La Estrella o la naturaleza de Formosa, en una o dos oraciones, y hacele una pregunta a ${otros[0] || 'la persona que te escucha'}.` });
+}
+function vigilar(){ clearTimeout(live.vigia); live.vigia = setTimeout(() => { if (live.activo && live.hablando){ live.hablando = null; pausar('Nadie respondió a tiempo. Escribí o hablales para seguir.'); } }, 40000); }
+function alHablar(id, texto){ live.hablando = id; clearTimeout(live.vigia); estadoP[id] = 'habla'; pintarEstados(); subtitular(id, texto); if (camAuto) irA(id); }
+function alTerminarTurno(id, texto){
+  if (live.fase === 'intro'){ subtitular(); return; }
+  clearTimeout(live.vigia); live.hablando = null; live.ultimo = { id, texto }; estadoP[id] = 'escucha'; pintarEstados();
+  setTimeout(() => subtitular(), 600);
+  if (live.pendiente){ const t = live.pendiente; live.pendiente = null; entregarUsuario(t); return; }
+  if (live.pausado || live.micOn || !$('chkAuto').checked) return;
+  live.turno++;
+  const max = Math.max(1, +$('maxTurnos').value || 6);
+  if (live.turno >= max){ pausar('Llegaron al límite de turnos para cuidar tus créditos. Hablales, escribí o tocá «Seguir la ronda».'); return; }
+  entregarTurno(id, elegirSiguiente(id, texto), texto);
+}
+function elegirSiguiente(de, texto){
+  const t = (texto || '').toLowerCase(), cand = live.conectados.filter(x => x !== de);
+  const nombrado = cand.find(x => P[x].alias.some(a => new RegExp('(^|[^a-záéíóúñ])' + a + '([^a-záéíóúñ]|$)', 'i').test(t)));
+  if (nombrado) return nombrado;
+  const i = live.conectados.indexOf(de); return live.conectados[(i + 1) % live.conectados.length] === de ? cand[0] : live.conectados[(i + 1) % live.conectados.length];
+}
+function entregarTurno(de, a, texto){
+  if (!a || a === de) return;
+  live.hablando = a; vigilar();
+  enviar(a, { tipo:'esc_texto', texto:`${P[de].corto} dijo: «${texto}». Respondele a ${P[de].corto} en una a tres oraciones, sin repetir lo que ya dijo, y nombrá a alguien para seguir la charla.` });
+  for (const o of live.conectados) if (o !== a && o !== de) enviar(o, { tipo:'esc_contexto', texto:`${P[de].corto} dijo: «${texto}». Ahora le responde ${P[a].corto}.` });
+}
+function pausar(msg){ live.pausado = true; avisoVivo(msg, ''); }
+function seguirRonda(){
+  if (!live.activo || !live.ultimo) return;
+  live.pausado = false; live.turno = 0; if (live.micOn) alternarMic(false);
+  entregarTurno(live.ultimo.id, elegirSiguiente(live.ultimo.id, live.ultimo.texto), live.ultimo.texto); avisoVivo('');
+}
+function armarReceptores(){
+  const c = $('receptores'); c.innerHTML = '';
+  for (const id of live.conectados){ const b = document.createElement('button'); b.className = 'chip'; b.textContent = 'Hablarle a ' + P[id].corto; b.setAttribute('aria-pressed', String(id === live.receptor));
+    b.addEventListener('click', () => { live.receptor = id; armarReceptores(); if (live.micOn) alternarMic(true); }); c.appendChild(b); }
+}
+function alternarMic(on){
+  live.micOn = on; $('btnMic').setAttribute('aria-pressed', String(on)); $('btnMic').textContent = on ? 'Te escucha ' + P[live.receptor].corto + ' (tocá para silenciar)' : 'Hablar yo';
+  for (const id of live.conectados) enviar(id, { tipo:'esc_mic', mudo:!(on && id === live.receptor) });
+  if (on){ live.pausado = true; } else { live.pausado = false; }
+}
+function alOirUsuario(id, texto){
+  subtitular('', ''); live.turno = 0;
+  const cont = $('sub'); cont.innerHTML = ''; const b = document.createElement('b'); b.textContent = 'Vos:'; cont.append(b, document.createTextNode(texto)); cont.classList.add('visible');
+  for (const o of live.conectados) if (o !== id) enviar(o, { tipo:'esc_contexto', texto:`La persona le dijo a ${P[id].corto}: «${texto}».` });
+}
+function entregarUsuario(texto){
+  const r = live.receptor; live.hablando = r; vigilar(); live.turno = 0; live.pausado = false;
+  enviar(r, { tipo:'esc_texto', texto });
+  for (const o of live.conectados) if (o !== r) enviar(o, { tipo:'esc_contexto', texto:`La persona escribió: «${texto}» (se lo dijo a ${P[r].corto}).` });
+}
+function enviarTexto(texto){
+  if (!live.activo || live.fase !== 'ronda'){ avisoVivo('Primero tocá «Empezar la charla».', 'mal'); return; }
+  const c = $('sub'); c.innerHTML = ''; const b = document.createElement('b'); b.textContent = 'Vos:'; c.append(b, document.createTextNode(texto)); c.classList.add('visible');
+  if (live.hablando){ live.pendiente = texto; avisoVivo('Se lo paso apenas termine de hablar.'); } else entregarUsuario(texto);
+}
+async function terminar(){
+  const ids = [...live.conectados]; clearTimeout(live.vigia);
+  live.activo = false; for (const id of ids) enviar(id, { tipo:'esc_desconectar' });
+  live = { activo:false, conectados:[], fase:'', turno:0, pausado:false, micOn:false, receptor:'matecito', hablando:null, ultimo:null, pendiente:null, vigia:0 };
+  for (const id of ORDEN) estadoP[id] = null; pintarEstados(); subtitular();
+  $('btnEmpezar').classList.remove('oculta'); $('btnTerminar').classList.add('oculta'); $('controlesVivo').classList.add('oculta'); avisoVivo('');
+  $('btnMic').setAttribute('aria-pressed', 'false'); $('btnMic').textContent = 'Hablar yo'; if (camAuto) irA('general');
+}
+$('btnEmpezar').addEventListener('click', empezar);
+$('btnTerminar').addEventListener('click', terminar);
+$('btnMic').addEventListener('click', () => alternarMic(!live.micOn));
+$('btnSeguir').addEventListener('click', seguirRonda);
+$('formTexto').addEventListener('submit', (e) => { e.preventDefault(); const t = $('textoVivo').value.trim(); if (!t) return; $('textoVivo').value = ''; enviarTexto(t); });
+
+/* ================= GUIONES: reproducción con voz del dispositivo (sin créditos) ================= */
+const EJEMPLOS = {
+  'Una ronda de mate junto al puente': `[título: Una ronda de mate junto al puente]
+# Matecito cebador, Ares desde la rama y Arthur recién llegado de Fráncfort.
+[plano: general]
+MATECITO: ¡Eeeh, che! Arrancó la ronda. Soy Matecito Curioso y hoy cebo yo. Nos acompañan Ares, el loro del monte, y un visitante bastante serio.
+ARES: ¡Hola, che! Soy Ares, el loro parlanchín del monte formoseño. Desde esta rama se ve todo el puente. ¡Cro, cro!
+ARTHUR: Me llamo Arthur. No sé cómo llegué hasta aquí. Hace un momento estaba en una biblioteca de Fráncfort, y ahora respiro aire con olor a pasto. Tú, redondo: ¿qué es esa pajita de plata?
+MATECITO: ¡Mirá vos! Es la bombilla, Arthur. Sirve para tomar el mate sin tragarte la yerba. Y el mate se comparte: pasa de mano en mano, en ronda.
+ARTHUR: Compartir una misma pajita. Qué idea audaz. Me recuerda a mis puercoespines: si se juntan mucho se pinchan, y si se alejan tienen frío.
+MATECITO: ¡No me digas! La parábola de los puercoespines. Eso sí está documentado: es un texto tuyo. ¿Y cuál es la distancia justa?
+ARTHUR: Una distancia media, de cortesía. Lo bastante cerca para entrar en calor y lo bastante lejos para no pincharse.
+ARES: Eso es como el monte, che: cada bicho en su lugar, pero todos cerca del agua. ¿Saben qué es el Bañado La Estrella?
+MATECITO: ¡Pará la bombilla! Eso hay que contarlo bien. Ares, ¿nos explicás?
+ARES: Esto es un dato real: el Bañado La Estrella es un enorme humedal del centro oeste de Formosa. Se forma cuando el río Pilcomayo pierde su cauce principal y el agua se derrama sobre la llanura.
+ARTHUR: Un río que se pierde y se desparrama. Debo admitirlo: me parece casi poético.
+MATECITO: Y además los humedales filtran el agua, amortiguan las inundaciones y son hogar de muchísima vida. Por eso hay que cuidarlos. Un brindis con mate por eso, ¿Arthur?
+ARTHUR: Acepto, aunque sepas que la felicidad es una ilusión pasajera. Una pasajera agradable.
+[plano: general]
+MATECITO: ¡Vamos por otra! Somos personajes hechos con inteligencia artificial, así que verificá siempre los datos importantes. ¡Gracias por la ronda!`,
+
+  '¿Quién cuida mejor el humedal?': `[título: ¿Quién cuida mejor el humedal?]
+# Debate amistoso. Matecito modera y propone verificar.
+MATECITO: ¡Che! Hoy hay debate: ¿quién cuida mejor un humedal como el Bañado La Estrella? Ares, arrancá vos.
+ARES: Yo vivo en el monte, che, y lo conozco de punta a punta. Dice la leyenda que el Pombero cuida el monte y a los pájaros. Es una leyenda, no un hecho comprobado, pero enseña a respetar a los animales.
+MATECITO: Qué lindo mensaje. Yo aporto lo mío: la yerba usada va a la compostera o a las plantas, y las tres erres, reducir, reutilizar y reciclar, empiezan por casa. ¿Y vos, Arthur?
+ARTHUR: Yo dudo que los humanos cuiden algo mientras haya algo que desear. Siempre quieren más, y el querer es una carencia.
+MATECITO: ¡Qué macana! Eso suena triste. Pero fijate: ¿cómo lo comprobamos? ¿Hay datos que muestren qué ayuda a un humedal?
+ARES: Los datos reales dicen que los humedales filtran el agua, amortiguan inundaciones y dan hogar a muchísimos animales. Eso sí está documentado.
+ARTHUR: Entonces, si el humedal nos protege a nosotros, cuidarlo es un buen negocio. Una compasión con interés. Lo admito: es una salida sabia.
+MATECITO: ¡Eso es! No tirar residuos, no cazar ni pescar de forma ilegal, no quemar pastizales sin control y respetar a los animales silvestres. Ahí cuidamos entre todos.
+ARES: ¡Eso! Y al que no cuida, el Pombero le hace pasar un susto, ¡cro, cro!
+MATECITO: Empate de equipo, entonces. ¡Vamos por otra! Y recordá: somos personajes con inteligencia artificial, verificá los datos.`,
+
+  'Examen sorpresa de mate, monte y filosofía': `[título: Examen sorpresa]
+# Matecito toma el examen. Los datos salen de las bases de conocimiento.
+MATECITO: ¡Eeeh, che! Examen sorpresa, pero amistoso. Una pregunta para cada uno. Ares, tu turno: ¿cuál es el roedor más grande del mundo?
+ARES: ¡Uy, de los míos del monte! El carpincho, che. Vive cerca del agua y nada muy bien.
+MATECITO: ¡Muy bien! ¡Exacto! Arthur, vamos con vos: ¿de qué lengua viene la palabra mate?
+ARTHUR: Lenguas de otro continente no son mi fuerte, pero lo intentaré. ¿Quechua?
+MATECITO: ¡Eso es! Viene del quechua mati, que nombra al recipiente de calabaza. Vas muy bien, filósofo.
+ARTHUR: Es suerte de principiante. Dime otra, y la desmontaré con ironía.
+MATECITO: ¡Dale! ¿Quién creó la bandera argentina?
+ARTHUR: Un general, supongo. Manuel Belgrano, si la memoria no me engaña.
+MATECITO: ¡Muy bien! Belgrano, que la izó por primera vez en mil ochocientos doce, en Rosario. Ares, la última es tuya: ¿qué provincia queda al lado de Chaco y de Paraguay?
+ARES: ¡Formosa, che! Mi provincia. Limita con Paraguay, con Chaco y con Salta.
+MATECITO: ¡Excelente! Todos aprobaron. ¡Vamos por otra!`
+};
+let guionActual = EJEMPLOS['Una ronda de mate junto al puente'], tokenGuion = 0, reproduciendo = false;
+const ALIAS_ID = {}; for (const id of ORDEN) for (const a of P[id].alias) ALIAS_ID[a] = id; ALIAS_ID['arthur schopenhauer'] = 'arthur'; ALIAS_ID['matecito curioso'] = 'matecito'; ALIAS_ID['ares el loro'] = 'ares';
+function parsear(texto){
+  const out = [], errores = [];
+  for (const raw of texto.split('\n')){
+    const l = raw.trim(); if (!l || l.startsWith('#')) continue; let m;
+    if ((m = l.match(/^\[(?:título|titulo)\s*:\s*(.+)\]$/i))) out.push({ t:'titulo', v:m[1].trim() });
+    else if ((m = l.match(/^\[plano\s*:\s*(.+)\]$/i))) out.push({ t:'plano', v:m[1].trim().toLowerCase() });
+    else if ((m = l.match(/^\[pausa\s*:\s*([0-9.,]+)\]$/i))) out.push({ t:'pausa', v:parseFloat(m[1].replace(',', '.')) });
+    else if ((m = l.match(/^([^:\[\]]{2,30}):\s*(.+)$/))){ const id = ALIAS_ID[m[1].trim().toLowerCase()]; if (id) out.push({ t:'dice', id, v:m[2].trim() }); else errores.push(l.slice(0, 60)); }
+    else errores.push(l.slice(0, 60));
+  }
+  return { pasos:out, errores };
+}
+function tituloDe(pasos){ const t = pasos.find(p => p.t === 'titulo'); return t ? t.v : 'Charla en El Colorado'; }
+function detenerGuion(){ tokenGuion++; if (reproduciendo){ for (const id of ORDEN) enviar(id, { tipo:'esc_callar' }); } reproduciendo = false; subtitular(); tarjeta(); for (const id of ORDEN) if (estadoP[id] === 'demo') estadoP[id] = null; pintarEstados(); }
+async function reproducir(texto, conTarjetas){
+  if (live.activo) await terminar();
+  detenerGuion(); const mi = ++tokenGuion; reproduciendo = true;
+  const { pasos, errores } = parsear(texto), titulo = tituloDe(pasos);
+  const aviso = $(tabActual === 'vivo' ? 'avisoVivo' : 'avisoCine'); aviso.innerHTML = '';
+  if (errores.length){ const d = document.createElement('div'); d.className = 'aviso mal'; d.textContent = 'No entendí estas líneas (revisá el nombre antes de los dos puntos): ' + errores.slice(0, 3).join(' | '); aviso.appendChild(d); }
+  if (!pasos.some(p => p.t === 'dice')){ reproduciendo = false; return; }
+  if (camAuto) irA('general');
+  if (conTarjetas){ tarjeta(titulo, 'Matecito Curioso · Ares · Arthur Schopenhauer — personajes recreados con inteligencia artificial'); await esperaMs(3200); if (mi !== tokenGuion) return; tarjeta(); await esperaMs(800); if (mi !== tokenGuion) return; }
+  let n = 0, previo = null;
+  for (const p of pasos){
+    if (mi !== tokenGuion) return;
+    if (p.t === 'plano'){ camAuto = false; const [a, b] = p.v.split(/[ ,]+/); if (p.v === 'dos' && previo) irA('dos', [previo, ORDEN.find(i => i !== previo)]); else irA(P[a] ? a : 'general'); $('chipAuto').setAttribute('aria-pressed', 'false'); camAuto = true; $('chipAuto').setAttribute('aria-pressed', 'true'); }
+    else if (p.t === 'pausa'){ await esperaMs((p.v || 1)*1000); }
+    else if (p.t === 'dice'){
+      n++; if (camAuto && !(n % 5 === 0)) irA(p.id); else if (camAuto) irA('dos', [p.id, previo && previo !== p.id ? previo : ORDEN.find(i => i !== p.id)]);
+      estadoP[p.id] = 'demo'; pintarEstados(); subtitular(p.id, p.v);
+      enviar(p.id, { tipo:'esc_decir', texto:p.v, rate:P[p.id].voz.rate, pitch:P[p.id].voz.pitch });
+      await esperar(p.id, 'esc_fin_demo', 1500 + p.v.length*110);
+      if (mi !== tokenGuion) return;
+      estadoP[p.id] = null; pintarEstados(); await esperaMs(420); previo = p.id;
+    }
+  }
+  if (mi !== tokenGuion) return;
+  subtitular(); if (camAuto) irA('general');
+  if (conTarjetas){ await esperaMs(900); tarjeta('Fin', 'Personajes recreados con IA: pueden equivocarse, verificá los datos importantes. IA al Colorado · Prácticas Profesionalizantes · Auxiliar en IA · El Colorado, Formosa. Foto de fondo: completar autoría.'); await esperaMs(4200); if (mi !== tokenGuion) return; tarjeta(); }
+  reproduciendo = false;
+}
+
+/* ---- Idea → Guion ---- */
+function cargarEjemplos(){
+  const s = $('demoGuion'), c = $('ejemplos');
+  for (const n of Object.keys(EJEMPLOS)){
+    const o = document.createElement('option'); o.value = n; o.textContent = n; s.appendChild(o);
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = n; b.addEventListener('click', () => { $('guionTxt').value = EJEMPLOS[n]; $('msgGuion').textContent = 'Ejemplo cargado: editalo a gusto.'; $('ytTitulo').value = ''; }); c.appendChild(b);
+  }
+  $('guionTxt').value = guionActual;
+}
+$('btnEsqueleto').addEventListener('click', () => {
+  const idea = $('idea').value.trim() || 'una ronda de mate junto al puente';
+  $('guionTxt').value = `[título: ${idea.slice(0, 60)}]
+# Idea: ${idea}
+# Completá cada línea. Matecito abre y cierra, y celebra con «¡Muy bien!» (así festeja su figura).
+[plano: general]
+MATECITO: ¡Eeeh, che! Hoy vamos a charlar sobre esto: ${idea}. [Presentá a los demás y hacé una pregunta.]
+ARES: [Un dato real del monte o del Bañado La Estrella, aclarando qué es dato y qué es leyenda.]
+ARTHUR: [Una mirada irónica y erudita sobre la idea, sin ofender a nadie.]
+MATECITO: [Una pregunta para pensar o un desafío para verificar un dato.]
+ARES: [Responde y suma algo de Formosa.]
+ARTHUR: [Una salida sabia o una conclusión con humor.]
+MATECITO: ¡Vamos por otra! [Cierre: un resumen de lo aprendido y el aviso de que son personajes con IA.]`;
+  $('msgGuion').textContent = 'Esqueleto armado: reemplazá lo que está entre corchetes.';
+});
+$('btnPedido').addEventListener('click', async () => {
+  const idea = $('idea').value.trim() || '[mi idea]';
+  const txt = `Escribime un guion corto (14 a 18 líneas) para un escenario multiagente en El Colorado, Formosa, junto a un puente sobre el río.
+Idea: ${idea}
+Personajes:
+- MATECITO: Matecito Curioso, un mate argentino parlante, cebador y curioso; usa voseo y dice «¡Muy bien!» cuando alguien acierta.
+- ARES: loro hablador formoseño; voseo; distingue dato real de leyenda.
+- ARTHUR: recreación del filósofo Arthur Schopenhauer, sarcástico y erudito; trata de «tú».
+Reglas: usá solo datos verificables, no inventes fechas ni historia local de El Colorado, nada ofensivo, y que cierren aclarando que son personajes hechos con IA.
+Formato exacto, una línea por intervención: NOMBRE: texto. Podés agregar [título: ...] y [plano: general].`;
+  try { await navigator.clipboard.writeText(txt); $('msgGuion').textContent = 'Pedido copiado: pegalo en Claude y traé el guion acá.'; } catch { $('guionTxt').value = txt; $('msgGuion').textContent = 'No pude copiar: lo puse en el cuadro para que lo copies.'; }
+});
+function usarGuion(irA_){
+  guionActual = $('guionTxt').value; const { pasos, errores } = parsear(guionActual);
+  const lineas = pasos.filter(p => p.t === 'dice').length;
+  $('msgGuion').textContent = lineas ? `Guion cargado: ${lineas} intervenciones.` + (errores.length ? ` (${errores.length} líneas sin entender)` : '') : 'No encontré intervenciones con el formato NOMBRE: texto.';
+  if (!lineas) return; prepararYoutube(); mostrarTab(irA_);
+}
+$('btnUsarGuion').addEventListener('click', () => usarGuion('capitulo'));
+$('btnUsarShort').addEventListener('click', () => usarGuion('short'));
+
+/* ---- Reproducir ---- */
+$('btnDemo').addEventListener('click', () => { guionActual = EJEMPLOS[$('demoGuion').value]; $('guionTxt').value = guionActual; reproducir(guionActual, false); });
+$('btnPlay').addEventListener('click', () => { reproducir(guionActual, $('chkTarjetas').checked); });
+$('btnStop').addEventListener('click', () => { detenerGuion(); });
+
+/* ================= Pestañas ================= */
+let tabActual = 'vivo';
+function mostrarTab(t){
+  if (t !== tabActual && reproduciendo) detenerGuion();
+  tabActual = t;
+  document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+  const cine = t === 'capitulo' || t === 'short', escena = t === 'vivo' || cine || t === 'guion';
+  $('p-vivo').classList.toggle('oculta', t !== 'vivo'); $('p-guion').classList.toggle('oculta', t !== 'guion');
+  $('p-cine').classList.toggle('oculta', !cine); $('p-youtube').classList.toggle('oculta', t !== 'youtube');
+  $('seccionGuion').classList.toggle('oculta', t !== 'guion');
+  $('escenaSec').classList.toggle('oculta', !escena);
+  $('cols').style.gridTemplateColumns = escena ? '' : '1fr';
+  marco.dataset.ratio = t === 'short' ? '9x16' : '16x9';
+  if (cine){
+    $('cineTitulo').textContent = t === 'short' ? 'Short 9:16' : 'Capítulo 16:9';
+    $('cineAyuda').textContent = t === 'short' ? 'Versión vertical para reels, shorts y estados. La cámara sigue a quien habla.' : 'Versión cinematográfica horizontal, para YouTube. Reproduce el guion con cámaras automáticas, tarjeta de título y créditos.';
+    const { pasos } = parsear(guionActual); $('resumenGuion').textContent = `«${tituloDe(pasos)}»: ${pasos.filter(p => p.t === 'dice').length} intervenciones. Se cambia en «Idea → Guion».`;
+  }
+  requestAnimationFrame(() => { irA('general'); aplicarCamara(planoDe('general'), true); });
+  if (t === 'youtube') prepararYoutube();
+}
+document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => mostrarTab(b.dataset.tab)));
+
+/* ================= YouTube ================= */
+function prepararYoutube(){
+  const { pasos } = parsear(guionActual), titulo = tituloDe(pasos);
+  if (!$('ytTitulo').value) $('ytTitulo').value = `${titulo} | Humanos digitales en El Colorado, Formosa`;
+  if (!$('miniTexto').value) $('miniTexto').value = titulo.slice(0, 46);
+  if (!$('ytDesc').value) $('ytDesc').value = `${titulo}
+
+Matecito Curioso (un mate parlante educativo), Ares (un loro hablador formoseño) y Arthur Schopenhauer (una recreación del filósofo) conversan junto al puente de El Colorado, Formosa.
+
+Aviso: todos los personajes son recreaciones hechas con inteligencia artificial, con fines educativos. Pueden equivocarse: verificá los datos importantes.
+
+Proyecto de Prácticas Profesionalizantes · Auxiliar en IA 2026 · ISFD y T «República Federal de Alemania» · El Colorado, Formosa · Prof. Ariel Cóceres.
+Foto de fondo: [completar autoría y permiso de uso].
+
+#IAalColorado #ElColorado #Formosa #HumanosDigitales #EducaciónConIA #Mate`;
+}
+async function copiar(id, msg){ try { await navigator.clipboard.writeText($(id).value); $('avisoYt').innerHTML = `<div class="aviso bien">${msg}</div>`; } catch { $(id).select(); $('avisoYt').innerHTML = '<div class="aviso">Seleccioné el texto: copialo con Ctrl+C.</div>'; } }
+$('btnCopiarTitulo').addEventListener('click', () => copiar('ytTitulo', 'Título copiado.'));
+$('btnCopiarDesc').addEventListener('click', () => copiar('ytDesc', 'Descripción copiada.'));
+const fotos = {};
+function pedirFoto(id){
+  return new Promise(res => { const o = { id, tipo:'esc_foto', res: (m) => { fotos[id] = m.dataUrl; res(m.dataUrl); } }; escuchas.push(o); enviar(id, { tipo:'esc_foto' }); setTimeout(() => { const i = escuchas.indexOf(o); if (i >= 0){ escuchas.splice(i, 1); res(null); } }, 4000); });
+}
+const cargarImg = (src) => new Promise(r => { if (!src) return r(null); const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
+$('btnMini').addEventListener('click', async () => {
+  const cv = $('mini'), g = cv.getContext('2d'), W = 1280, H = 720, k = W/MUNDO.w;
+  $('avisoYt').innerHTML = '<div class="aviso">Sacando fotos de los personajes…</div>';
+  const fondo = await cargarImg('img/fondo-el-colorado.jpg');
+  const imgs = {}; for (const id of ORDEN){ const d = await pedirFoto(id); imgs[id] = await cargarImg(d); }
+  g.clearRect(0, 0, W, H);
+  // recorte para que el set llene los 1280x720 (el mundo es 1600x865 → se centra)
+  const s = Math.max(W/MUNDO.w, H/MUNDO.h), ox = (W - MUNDO.w*s)/2, oy = (H - MUNDO.h*s)/2;
+  g.save(); g.translate(ox, oy); g.scale(s, s);
+  if (fondo) g.drawImage(fondo, 0, 0, MUNDO.w, MUNDO.h); else { g.fillStyle = '#25644c'; g.fillRect(0, 0, MUNDO.w, MUNDO.h); }
+  const dib = (id) => { const p = P[id].pos; if (imgs[id]) g.drawImage(imgs[id], p.cx - p.w/2, p.base - p.h, p.w, p.h); };
+  dib('arthur');
+  if (fondo){ g.save(); g.beginPath(); g.moveTo(0, BANDA.izq); g.lineTo(MUNDO.w, BANDA.der); g.lineTo(MUNDO.w, MUNDO.h); g.lineTo(0, MUNDO.h); g.closePath(); g.clip(); g.drawImage(fondo, 0, 0, MUNDO.w, MUNDO.h); g.restore(); }
+  dib('matecito'); dib('ares'); g.restore();
+  // degradé y texto
+  const gr = g.createLinearGradient(0, H*.45, 0, H); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(8,28,20,.88)'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  g.font = '800 70px "Segoe UI",Arial,sans-serif'; g.textAlign = 'center'; g.lineJoin = 'round'; g.lineWidth = 12; g.strokeStyle = '#0d2a20'; g.fillStyle = '#fff';
+  const lineas = (() => { const w = ($('miniTexto').value || 'Humanos digitales').split(' '), r = ['']; for (const x of w){ if ((r[r.length - 1] + ' ' + x).trim().length > 22) r.push(x); else r[r.length - 1] = (r[r.length - 1] + ' ' + x).trim(); } return r.slice(0, 2); })();
+  lineas.forEach((l, i) => { const y = H - 80 - (lineas.length - 1 - i)*78; g.strokeText(l, W/2, y); g.fillText(l, W/2, y); });
+  g.fillStyle = '#c9a227'; g.fillRect(28, 28, 372, 46); g.fillStyle = '#1b1b12'; g.font = '700 25px "Segoe UI",Arial,sans-serif'; g.textAlign = 'left'; g.fillText('IA al Colorado · El Colorado, Formosa', 40, 61);
+  g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(W - 262, 28, 234, 34); g.fillStyle = '#fff'; g.font = '600 18px "Segoe UI",Arial,sans-serif'; g.fillText('Personajes recreados con IA', W - 252, 51);
+  const faltan = ORDEN.filter(id => !imgs[id]);
+  $('avisoYt').innerHTML = faltan.length ? `<div class="aviso mal">No pude sacar foto de: ${faltan.map(i => P[i].corto).join(', ')}. La miniatura quedó sin ellos; esperá a que carguen y repetí.</div>` : '<div class="aviso bien">Miniatura lista. Descargala con el botón.</div>';
+});
+$('btnBajarMini').addEventListener('click', () => { const a = document.createElement('a'); a.download = 'miniatura-el-colorado.png'; a.href = $('mini').toDataURL('image/png'); a.click(); });
+
+/* ================= Calibración (?calibrar=1) ================= */
+if (URL_PARAMS.has('calibrar')){
+  const c = document.createElement('div'); c.id = 'calib'; c.innerHTML = '<b>Calibrar el set</b><br><span class="nota">Mové cada personaje hasta que quede bien sobre la foto. Se guarda en este navegador.</span>';
+  for (const id of ORDEN){
+    const t = document.createElement('div'); t.innerHTML = `<b style="color:var(--verde)">${P[id].corto}</b>`; c.appendChild(t);
+    for (const [k, min, max] of [['cx', 0, 1600], ['base', 200, 865], ['w', 150, 700], ['h', 150, 700]]){
+      const l = document.createElement('label'); const r = document.createElement('input'); r.type = 'range'; r.min = min; r.max = max; r.value = P[id].pos[k];
+      const n = document.createElement('span'); n.textContent = P[id].pos[k]; l.append(document.createTextNode(k), r, n);
+      r.addEventListener('input', () => { P[id].pos[k] = +r.value; n.textContent = r.value; ubicar(id); }); c.appendChild(l);
+    }
+  }
+  for (const [k, t] of [['izq', 'baranda izq.'], ['der', 'baranda der.']]){
+    const l = document.createElement('label'); const r = document.createElement('input'); r.type = 'range'; r.min = 560; r.max = 800; r.value = BANDA[k]; const n = document.createElement('span'); n.textContent = BANDA[k];
+    l.append(document.createTextNode(t), r, n); r.addEventListener('input', () => { BANDA[k] = +r.value; n.textContent = r.value; actualizarBanda(); }); c.appendChild(l);
+  }
+  const bt = document.createElement('button'); bt.className = 'btn'; bt.textContent = 'Guardar y copiar valores'; bt.style.marginTop = '8px';
+  bt.addEventListener('click', async () => { const o = {}; for (const id of ORDEN) o[id] = { ...P[id].pos }; localStorage.setItem('esc_pos', JSON.stringify(o)); const txt = JSON.stringify({ posiciones:o, banda:BANDA }); try { await navigator.clipboard.writeText(txt); } catch {} alert('Guardado. Valores copiados:\n' + txt); });
+  const rs = document.createElement('button'); rs.className = 'btn claro'; rs.textContent = 'Borrar guardado'; rs.style.margin = '8px 0 0 6px'; rs.addEventListener('click', () => { localStorage.removeItem('esc_pos'); location.reload(); });
+  c.append(bt, rs); document.body.appendChild(c);
+}
+
+/* ================= Arranque ================= */
+construirSet(); cargarEjemplos(); pintarEstados(); mostrarTab('vivo');
+addEventListener('beforeunload', () => { for (const id of ORDEN) try { enviar(id, { tipo:'esc_desconectar' }); } catch {} });
+</script>
+</body>
+</html>
